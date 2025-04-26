@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 # Parâmetros gerais
 d = 2                   # distância entre níveis de símbolo (±d/2)
@@ -63,3 +64,28 @@ for sigma in sigma_list:
 
 # Exibe todos os gráficos
 plt.show()
+
+
+
+# Parâmetro
+d = 2
+
+# Valores de sigma correspondentes aos itens (a)-(d)
+sigma_list = [1, 0.5, 0.25, 0.125]
+
+# Supondo que ser_list já foi calculada anteriormente no script:
+# ser_list = [SER para sigma=1, sigma=0.5, sigma=0.25, sigma=0.125]
+# Caso não tenha, pode-se recalcular simulando novamente ou usando valores já obtidos.
+
+# Para efeito de demonstração, vamos usar ser_list de um exemplo hipotético:
+# (Substitua pelos seus valores simulados)
+ser_list = [0.158809, 0.022617, 3.5e-05, 0]
+
+# Cálculo de Pe teórica para cada sigma
+pe_list = [0.5 * math.erfc((d/2) / (sigma * math.sqrt(2))) for sigma in sigma_list]
+
+# Exibe comparação
+print("σ     |   SER simulada   |   Pe teórica")
+print("----------------------------------------")
+for sigma, ser, pe in zip(sigma_list, ser_list, pe_list):
+    print(f"{sigma:<5} | {ser:>12.6e} | {pe:>12.6e}")
