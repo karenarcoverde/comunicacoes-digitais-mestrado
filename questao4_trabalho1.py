@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import matplotlib.ticker as ticker
 
+
+### a-d
 # Parâmetros gerais
 d = 2                   # distância entre níveis de símbolo (±d/2)
 N = 10**6               # número de símbolos transmitidos
@@ -66,7 +69,7 @@ for sigma in sigma_list:
 plt.show()
 
 
-
+### e
 # Parâmetro
 d = 2
 
@@ -75,10 +78,6 @@ sigma_list = [1, 0.5, 0.25, 0.125]
 
 # Supondo que ser_list já foi calculada anteriormente no script:
 # ser_list = [SER para sigma=1, sigma=0.5, sigma=0.25, sigma=0.125]
-# Caso não tenha, pode-se recalcular simulando novamente ou usando valores já obtidos.
-
-# Para efeito de demonstração, vamos usar ser_list de um exemplo hipotético:
-# (Substitua pelos seus valores simulados)
 ser_list = [0.158809, 0.022617, 3.5e-05, 0]
 
 # Cálculo de Pe teórica para cada sigma
@@ -89,3 +88,40 @@ print("σ     |   SER simulada   |   Pe teórica")
 print("----------------------------------------")
 for sigma, ser, pe in zip(sigma_list, ser_list, pe_list):
     print(f"{sigma:<5} | {ser:>12.6e} | {pe:>12.6e}")
+
+
+ ### f 
+# Dados
+sigma_list = [1, 0.5, 0.25, 0.125]
+ser_sim     = np.array([0.16,  0.023,   0.0,    0.0])
+pe_teo      = np.array([0.16,  0.023,   0.0,    0.0])
+d, Eb       = 2, (2**2)/8
+EbN0_dB     = [10*np.log10(Eb/(2*s**2)) for s in sigma_list]
+
+fig, ax = plt.subplots(figsize=(6,4), constrained_layout=True)
+
+# Plota
+ax.plot(EbN0_dB, ser_sim, marker='v', color='r', linestyle='-',  label='SER simulada')
+ax.plot(EbN0_dB, pe_teo,  marker='^', color='b', linestyle='--', label='Pe teórica (Q)')
+
+# ESCALA LINEAR NO Y
+ax.set_yscale('linear')
+
+# ticks X e Y fixos e uniformes
+ax.set_xticks(EbN0_dB)
+ax.set_yticks(np.arange(0, 0.18, 0.02))   # 0.00,0.02,0.04,...,0.16
+
+# formatação ponto flutuante, 2 casas
+ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+
+# rótulos, título, grade e legenda
+ax.set_xlabel(r'$E_b/N_0$ (dB)', fontsize=10, labelpad=6)
+ax.set_ylabel('Taxa de erro',    fontsize=10, labelpad=6)
+ax.set_title(r'SER e $P_e$ vs $E_b/N_0$', fontsize=12, pad=10)
+ax.grid(True, linestyle=':', linewidth=0.5)
+ax.legend(fontsize=9, loc='upper right')
+
+plt.show()
+
+
