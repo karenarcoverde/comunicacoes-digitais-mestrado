@@ -31,12 +31,20 @@ for sigma in sigma_list:
 
     # ------------------------------------------------------------
     # 3) PMF de x[n]
-    vals, cnt = np.unique(x, return_counts=True)
-    probs = cnt / cnt.sum()
-    plt.figure(figsize=(4,2.5))
-    plt.stem(vals, probs, basefmt=' ', linefmt='C0-', markerfmt='C0o')
+    # Cálculo da PMF
+    vals, cnts = np.unique(x, return_counts=True)
+    probs = cnts / cnts.sum()
+
+    # Plot com barras estreitas em -1 e +1
+    plt.figure(figsize=(4, 2.5))
+    plt.bar(vals, probs, width=0.4, align='center', alpha=0.7)
+    plt.xticks(vals)
+    plt.ylim(0, 1.1)
     plt.title(f'PMF de x[n] (σ={sigma})')
-    plt.xlabel('x[n]'); plt.ylabel('P(x)'); plt.ylim(0,1)
+    plt.xlabel('x[n]')
+    plt.ylabel('P(x)')
+    plt.tight_layout()
+    plt.show()
 
     # ------------------------------------------------------------
     # 4) PDF empírica de v[n] e y[n]
