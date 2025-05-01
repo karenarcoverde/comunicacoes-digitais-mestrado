@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import math
 import matplotlib.ticker as ticker
 
+### a-d
 # 1) Geração dos dados
 d      = 2
 N      = 10**6
@@ -65,7 +66,7 @@ sigma_list = [1, 0.5, 0.25, 0.125]
 
 # Supondo que ser_list já foi calculada anteriormente no script:
 # ser_list = [SER para sigma=1, sigma=0.5, sigma=0.25, sigma=0.125]
-ser_list = [0.158809, 0.022617, 3.5e-05, 0]
+ser_list = [0.158667 , 0.023012 , 0.000029 , 0]
 
 # Cálculo de Pe teórica para cada sigma
 pe_list = [0.5 * math.erfc((d/2) / (sigma * math.sqrt(2))) for sigma in sigma_list]
