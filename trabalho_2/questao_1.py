@@ -8,7 +8,7 @@ from scipy.special import erfc
 b_vals    = [1, 2, 4]                  # bits por símbolo
 alpha     = 0.15                       # roll‑off do filtro RRC
 sps       = 8                          # amostras por símbolo
-span      = 30                          # extensão do filtro em símbolos
+span      = 40                          # extensão do filtro em símbolos
 EbN0_dB   = np.arange(0, 25, 4)        # Eb/N0: 0, 4, 8, …, 24 dB
 num_bits  = 1000_000                      # bits para estimação de BER
 
