@@ -50,7 +50,7 @@ for EbN0 in EbN0_dB:
         ax.set_title(f'{M}-PAM @ Eb/N₀={EbN0} dB')
         ax.set_xlabel('Tx'); ax.set_ylabel('Rx'); ax.grid(True)
     fig.tight_layout()
-    fig.savefig(f'constellation_ideal_{EbN0}dB.png', dpi=150)
+    fig.savefig(f'constellation_{EbN0}dB.png', dpi=150)
     plt.close(fig)
 
 # ── 4) AWGN ideal + decisão + BER ─────────────────────────────────────────────
@@ -102,5 +102,5 @@ for b in b_vals:
     plt.grid(True, which='both')
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f'ber_{M}PAM_ideal.png', dpi=150)
+    plt.savefig(f'ber_{M}PAM.png', dpi=150)
     plt.close()
