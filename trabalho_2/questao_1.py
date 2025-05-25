@@ -10,7 +10,7 @@ alpha     = 0.15                       # roll‑off do filtro RRC
 sps       = 8                          # amostras por símbolo
 span      = 6                          # extensão do filtro em símbolos
 EbN0_dB   = np.arange(0, 25, 4)        # Eb/N0: 0, 4, 8, …, 24 dB
-num_bits  = 50000                      # bits para estimação de BER
+num_bits  = 50000                     # bits para estimação de BER
 
 # 2) Design do filtro Raiz‑Cosseno Levantado (RRC)
 def design_rrc(alpha, span, sps):
@@ -51,9 +51,11 @@ def transmit(a, p, sps):
 
 # 5) Canal AWGN
 def awgn(x, Eb, b, EbN0_dB, sps):
+    # N0 por símbolo
     N0    = Eb / (10**(EbN0_dB/10))
-    sigma = np.sqrt(N0/2 * sps)
-    return x + sigma*np.random.randn(len(x))
+    # variância = N0/2, sem multiplicar por sps
+    sigma = np.sqrt(N0/2)
+    return x + sigma * np.random.randn(len(x))
 
 # 6) Recepção: filtro casado q(t) + amostragem
 def receive(y, q, sps, delay):
