@@ -10,7 +10,7 @@ alpha     = 0.15                       # roll‑off do filtro RRC
 sps       = 8                          # amostras por símbolo
 span      = 30                          # extensão do filtro em símbolos
 EbN0_dB   = np.arange(0, 25, 4)        # Eb/N0: 0, 4, 8, …, 24 dB
-num_bits  = 1000_000                      # bits para estimação de BER
+num_bits  = 1000_000_0                      # bits para estimação de BER
 
 # 2) Design do filtro Raiz‑Cosseno Levantado (RRC)
 def design_rrc(alpha, span, sps):
