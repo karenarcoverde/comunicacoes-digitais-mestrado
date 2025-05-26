@@ -154,4 +154,4 @@ for b in b_list:
     ax.legend()
     fig.tight_layout()
     fig.savefig(f'ber_{M}QAM.png', dpi=150, bbox_inches='tight')
-    plt.close(fig) 
+    plt.close(fig)
