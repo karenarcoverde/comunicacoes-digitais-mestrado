@@ -11,7 +11,7 @@ fc = 100e6
 Fs = 4 * fc
 upsample_rate = 16
 num_symbols = 1000_00
-EbN0_dB_range = np.arange(0, 25, 2)
+EbN0_dB_range = np.arange(0, 25, 4)
 
 # ── Gera vetor de tempo e pulso RRC ──────────────────────────────────
 # 2) Gera os coeficientes do filtro RRC (p) e do matched filter (q = p invertido)
