@@ -3,6 +3,7 @@ import matplotlib
 matplotlib.use('Agg')       # backend sem janelas
 import matplotlib.pyplot as plt
 from scipy.special import erfc
+from matplotlib.lines import Line2D
 
 # ── Parâmetros gerais ─────────────────────────────────────────────────
 b_values       = [1, 2, 4]                 # Bits por símbolo → 2-PAM, 4-PAM, 16-PAM
@@ -128,40 +129,70 @@ for b in b_values:
     fig.savefig(f'ber_{M}PAM.png', dpi=150, bbox_inches='tight')
     plt.close(fig)
 
-# ── 9) Constelações base‐band lado a lado ─────────────────────────────
+
+# ── 9) Constelações banda‐base, um figure por M-PAM ─────────────────
 for EbN0_dB in EbN0_dB_range:
-    fig, axes = plt.subplots(1, len(b_values), figsize=(15,4))
-    for ax, b in zip(axes, b_values):
+    for b in b_values:
         M = 2**b
-        # gera nova sequência para visualizar dispersão
+
+        # prepara os dados
         bits = np.random.randint(0, 2, b * num_symbols)
         a    = bits_to_symbols(bits, b)
         x    = transmit(a, p, sps)
         Eb   = np.mean(a**2)/b
         y    = awgn(x, Eb, EbN0_dB)
         y_s  = receive(y, q, sps, delay)[:len(a)]
-        rx_constellation[EbN0_dB][b] = y_s  # opcional se quiser guardar
 
-        # plot ideal Tx (vazado azul) e Rx (laranja cheio)
-        ax.scatter( tx_constellation[b],
-                    np.zeros_like(tx_constellation[b]),
-                    s=5, edgecolors='blue',
-                    label='Tx', zorder=2)
-        ax.scatter( y_s,
-                    np.zeros_like(y_s),
-                    s=5, color='orange', alpha=0.7,
-                    label='Rx', zorder=1)
+        # novo figure + ax para **apenas** este M-PAM
+        fig, ax = plt.subplots(figsize=(6, 2))
 
-        # coloca legenda nesse subplot
-        ax.legend(loc='upper center', fontsize='small', ncol=2, frameon=False)
-        ax.set_yticks([])                   # oculta eixo Y
-        ax.spines['left'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+        # plota Tx ideal
+        ax.scatter(
+            tx_constellation[b],
+            np.zeros_like(tx_constellation[b]),
+            s=20, edgecolors='blue', facecolors='none',
+            label='Tx', zorder=2
+        )
+        # plota Rx
+        ax.scatter(
+            y_s,
+            np.zeros_like(y_s),
+            s=10, color='orange', alpha=0.7,
+            label='Rx', zorder=1
+        )
+
+        # legenda customizada
+        handles = [
+            Line2D([0], [0], marker='o', color='blue',
+                   label='Tx', markerfacecolor='none', markersize=8),
+            Line2D([0], [0], marker='o', color='orange',
+                   label='Rx', markersize=6),
+            Line2D([0], [0], linestyle='None', marker='',
+                   label=f'{M}-PAM')
+        ]
+        ax.legend(
+            handles=handles,
+            loc='upper center',
+            fontsize='small',
+            ncol=3,
+            frameon=False
+        )
+
+        # limpa eixo Y e posiciona X em y=0
+        ax.set_yticks([])
+        for spine in ['left','top','right']:
+            ax.spines[spine].set_visible(False)
         ax.spines['bottom'].set_position(('data', 0))
-        ax.set_xlabel('Em fase')
+
+        # aumenta tamanho dos ticks do eixo X
+        ax.tick_params(axis='x', labelsize=12)
+
+        ax.set_xlabel('Em fase', fontsize=12)
+        ax.set_title(f'{M}-PAM @ Eb/N0={EbN0_dB} dB', fontsize=14)
         ax.grid(False)
-    plt.suptitle(f'Constelações M-PAM @ Eb/N0={EbN0_dB} dB', y=1.05)
-    fig.tight_layout(rect=[0,0,1,0.9])
-    fig.savefig(f'constellation_PAM_{EbN0_dB}dB.png', dpi=150, bbox_inches='tight')
-    plt.close(fig)
+
+        fig.tight_layout()
+        # salva um PNG por M-PAM **e** Eb/N0
+        fig.savefig(f'constellation_{M}PAM_{EbN0_dB}dB.png',
+                    dpi=150, bbox_inches='tight')
+        plt.close(fig)
