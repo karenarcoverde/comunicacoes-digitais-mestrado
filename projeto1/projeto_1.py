@@ -21,6 +21,7 @@ lon_O = dms_to_dd(43, 6, 57.63, sign=-1)
 lat_B = dms_to_dd(22, 54, 16.03, sign=-1)
 lon_B = dms_to_dd(43, 6, 46.11, sign=-1)
 
+# pega o azimute de O para B usando uma lib pronta do python
 geod = Geod(ellps='WGS84')
 bearing_OB, back_az, dist = geod.inv(lon_O, lat_O, lon_B, lat_B)
 
@@ -33,12 +34,15 @@ df = pd.read_csv(
 
 # --- 4) cálculo de θ, R(θ) e Gt(θ) ---
 def calc_theta(row):
+    # pega o azimute de O para A
     bOA, back_az, dist = geod.inv(lon_O, lat_O, row['longitude'], row['latitude'])
-    Δ = abs(bOA - bearing_OB)
-    return Δ
+    #a diferenca do angulo para um ponto arbitrario para boresight para vai dar o angulo teta da imagem
+    return abs(bOA - bearing_OB)
 
+#aplica a funcao para achar o angulo teta
 df['theta_deg'] = df.apply(calc_theta, axis=1)
 
+#coeficientes do polinomio p R(teta)
 coefs = np.array([
     6.68119099491645e-10,
    -1.10210602759622e-07,
@@ -49,19 +53,19 @@ coefs = np.array([
    -0.00685676523907350,
    -0.000491338726848875
 ])
+#dado no enunciado - pega os coeficientes e o angulo teta para cada ponto arbitrario e forma o polinomio de ordem 7 
 df['R_theta'] = np.polyval(coefs, df['theta_deg'])
+#Ganho da antena transmissora Gt
 df['Gt_dBi'] = 14.1 + df['R_theta']   # ganho Tx corrigido
-df['Gt_dBi'].to_excel("teste.xlsx")
 
-# --- 5) parâmetros do link budget ---
+
+# --- 5) parâmetros do enunciado ---
 Pt_dBm, Gr_dBi, f_MHz = -7.0, 2.0, 850.0
 
 # --- 6) modelos FS (Friis), CI e AB ---
 c = 3e8                     # velocidade da luz (m/s)
 lam = c / (f_MHz * 1e6)     # comprimento de onda (m)
-# conversão de ganhos e distância em metros
-df['Gt_lin'] = 10**(df['Gt_dBi']/10)
-Gr_lin = 10**(Gr_dBi/10)
+
 df['d_m'] = df['dist_km'] * 1000
 
 # Modelo FS usando fórmula correta do slide
