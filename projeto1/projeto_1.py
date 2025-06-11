@@ -23,7 +23,6 @@ lon_B = dms_to_dd(43, 6, 46.11, sign=-1)
 
 geod = Geod(ellps='WGS84')
 bearing_OB, back_az, dist = geod.inv(lon_O, lat_O, lon_B, lat_B)
-print(bearing_OB)
 
 # --- 3) leitura do CSV sem header ---
 df = pd.read_csv(
@@ -51,7 +50,8 @@ coefs = np.array([
    -0.000491338726848875
 ])
 df['R_theta'] = np.polyval(coefs, df['theta_deg'])
-df['Gt_dBi'] = 14.1 - df['R_theta']   # ganho Tx corrigido
+df['Gt_dBi'] = 14.1 + df['R_theta']   # ganho Tx corrigido
+df['Gt_dBi'].to_excel("teste.xlsx")
 
 # --- 5) parâmetros do link budget ---
 Pt_dBm, Gr_dBi, f_MHz = -7.0, 2.0, 850.0
@@ -95,21 +95,40 @@ df['PL_meas'] = (
     - df['Pr_dBm']       # potência recebida medida
 )
 
-
-
-# --- 8) plot comparativo de path-loss ---
-plt.figure()
-plt.scatter(df['dist_km'], df['PL_meas'], label='Medido', s=15)
-plt.plot(df['dist_km'], df['PL_FS_pred'], label='FS')
-plt.xscale('log')
-plt.xlabel('Distância (km)')
-plt.ylabel('PL (dB)')
-plt.legend()
-plt.show()
-
 results = pd.DataFrame({
     'Modelo':          ['FS'],
     'Intercepto (dB)': [A_FS],
     'Declive':         [B_FS]
 })
 print(results.to_string(index=False))
+
+
+# --- 8) Modelo CI (Close-In) ---
+# Monta sistema y = B·x, com y = PL_meas − A_FS e x = log10(d/d0)
+x_ci = np.log10(df['d_m']).values.reshape(-1, 1)
+y_ci = (df['PL_meas'] - A_FS).values
+
+# Resolve B pelo método dos mínimos-quadrados
+B_CI, *_ = np.linalg.lstsq(x_ci, y_ci, rcond=None)
+
+# Predição do modelo CI
+df['PL_CI_pred'] = A_FS + B_CI[0] * np.log10(df['d_m'])
+
+results = pd.DataFrame({
+    'Modelo':          ['CI'],
+    'Intercepto (dB)': [A_FS],
+    'Declive':         [B_CI[0]]
+})
+print(results.to_string(index=False))
+
+# --- 8) plot comparativo de path-loss ---
+plt.figure()
+plt.scatter(df['dist_km'], df['PL_meas'], label='Medido', s=15)
+plt.plot(df['dist_km'], df['PL_FS_pred'], label='FS')
+plt.plot(df['dist_km'], df['PL_CI_pred'], '--', label='CI')  # <— adicionado
+plt.xscale('log')
+plt.xlabel('Distância (km)')
+plt.ylabel('PL (dB)')
+plt.legend()
+plt.show()
+
