@@ -121,11 +121,36 @@ results = pd.DataFrame({
 })
 print(results.to_string(index=False))
 
+
+# --- Modelo AB (Floating Intercept) ---
+# Monta a matriz X_ab com coluna de 1's (intercepto) e log10(d_m)
+X_ab = np.column_stack([
+    np.ones(len(df)), 
+    np.log10(df['d_m'])
+])
+# y_ab é o vetor de PL medido
+y_ab = df['PL_meas'].values
+
+# Resolve [A_AB, B_AB] pelo método dos mínimos-quadrados
+(A_AB, B_AB), *_ = np.linalg.lstsq(X_ab, y_ab, rcond=None)
+
+# Predição do modelo AB
+df['PL_AB_pred'] = A_AB + B_AB * np.log10(df['d_m'])
+
+# Exibe tabela de coeficientes
+results_ab = pd.DataFrame({
+    'Modelo':          ['AB'],
+    'Intercepto (dB)': [A_AB],
+    'Declive':         [B_AB]
+})
+print(results_ab.to_string(index=False))
+
 # --- 8) plot comparativo de path-loss ---
 plt.figure()
 plt.scatter(df['dist_km'], df['PL_meas'], label='Medido', s=15)
 plt.plot(df['dist_km'], df['PL_FS_pred'], label='FS')
-plt.plot(df['dist_km'], df['PL_CI_pred'], '--', label='CI')  # <— adicionado
+plt.plot(df['dist_km'], df['PL_CI_pred'], '--', label='CI') 
+plt.plot(df['dist_km'], df['PL_AB_pred'], '--', label='AB')  
 plt.xscale('log')
 plt.xlabel('Distância (km)')
 plt.ylabel('PL (dB)')
