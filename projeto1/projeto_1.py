@@ -4,6 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from astropy.coordinates import Angle
 import astropy.units as u
+from pyproj import Geod
 
 def dms_to_dd(deg, minutes, seconds, sign=1):
     """
@@ -14,27 +15,15 @@ def dms_to_dd(deg, minutes, seconds, sign=1):
     ang = Angle(f"{abs(deg)}d{minutes}m{seconds}s")
     return sign * ang.to(u.deg).value
 
-def initial_bearing(lat1, lon1, lat2, lon2):
-    φ1, φ2 = math.radians(lat1), math.radians(lat2)
-    Δλ = math.radians(lon2 - lon1)
-    x = math.sin(Δλ) * math.cos(φ2)
-    y = math.cos(φ1) * math.sin(φ2) - math.sin(φ1) * math.cos(φ2) * math.cos(Δλ)
-    θ = math.degrees(math.atan2(x, y))
-    return (θ + 360) % 360
-
-# --- 2) coordenadas do transmissor (O) e boresight (B) ---
-
 # --- 2) coordenadas do transmissor (O) e boresight (B) --- (O) e boresight (B) ---
 lat_O = dms_to_dd(22, 54, 9.83, sign=-1)
 lon_O = dms_to_dd(43, 6, 57.63, sign=-1)
 lat_B = dms_to_dd(22, 54, 16.03, sign=-1)
 lon_B = dms_to_dd(43, 6, 46.11, sign=-1)
 
-print(lat_O)
-print(lon_O)
-print(lat_B)
-print(lon_B)
-bearing_OB = initial_bearing(lat_O, lon_O, lat_B, lon_B)
+geod = Geod(ellps='WGS84')
+bearing_OB, back_az, dist = geod.inv(lon_O, lat_O, lon_B, lat_B)
+print(bearing_OB)
 
 # --- 3) leitura do CSV sem header ---
 df = pd.read_csv(
@@ -45,9 +34,9 @@ df = pd.read_csv(
 
 # --- 4) cálculo de θ, R(θ) e Gt(θ) ---
 def calc_theta(row):
-    bOA = initial_bearing(lat_O, lon_O, row['latitude'], row['longitude'])
+    bOA, back_az, dist = geod.inv(lon_O, lat_O, row['longitude'], row['latitude'])
     Δ = abs(bOA - bearing_OB)
-    return Δ if Δ <= 180 else 360 - Δ
+    return Δ
 
 df['theta_deg'] = df.apply(calc_theta, axis=1)
 
