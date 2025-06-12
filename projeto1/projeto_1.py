@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from astropy.coordinates import Angle
 import astropy.units as u
 from pyproj import Geod
+from scipy.stats import norm
 
 def dms_to_dd(deg, minutes, seconds, sign=1):
     """
@@ -161,3 +162,48 @@ plt.ylabel('PL (dB)')
 plt.legend()
 plt.show()
 
+# --- 1) calcular erros ---
+error_FS = df['PL_meas'] - df['PL_FS_pred']
+error_CI = df['PL_meas'] - df['PL_CI_pred']
+error_AB = df['PL_meas'] - df['PL_AB_pred']
+
+# --- 2) função de plotagem ---
+def plot_error_with_gaussian(error, title):
+    mu    = error.mean() #Calcula a media aritmetica do vetor error
+    sigma = error.std(ddof=0)      #Calcula o desvio-padrao populacional de error
+    # O parametro ddof=0 garante que dividimos por N, nao por 𝑁−1
+    x     = np.linspace(error.min(), error.max(), 1000) #Gera um 
+    #array x de 1000 pontos igualmente espaçados entre o valor minimo e o valor maximo de error. 
+    # Esses pontos servem de “eixo x” para avaliar a curva normal.
+    pdf   = norm.pdf(x, mu, sigma) # usa a pdf com mu e sigma para construcao
+
+    plt.figure()
+    plt.hist(error, bins=30, density=True, alpha=0.6)
+    plt.plot(x, pdf, linewidth=2)
+    plt.title(title)
+    plt.xlabel('Erro (dB)')
+    plt.ylabel('Densidade')
+    plt.grid(True)
+    plt.show()
+
+# --- 3) gerar os três gráficos ---
+plot_error_with_gaussian(error_FS, 'Distribuição de Erro – Modelo FS')
+plot_error_with_gaussian(error_CI, 'Distribuição de Erro – Modelo CI')
+plot_error_with_gaussian(error_AB, 'Distribuição de Erro – Modelo AB')
+
+# calcula média e desvio-padrão para cada modelo
+stats = pd.DataFrame({
+    'Modelo': ['FS', 'CI', 'AB'],
+    'Média do Erro (dB)': [
+        error_FS.mean(),
+        error_CI.mean(),
+        error_AB.mean()
+    ],
+    'Desvio Padrão (dB)': [
+        error_FS.std(ddof=0),   # ddof=0 para desvio padrão populacional
+        error_CI.std(ddof=0),
+        error_AB.std(ddof=0)
+    ]
+})
+
+print(stats)
