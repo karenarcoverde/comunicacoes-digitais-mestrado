@@ -7,7 +7,7 @@ N, CP, S = 64, 16, 10            # Número de subportadoras, comprimento do pref
 SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
 total    = N * S                 # Total de símbolos transmitidos
 
-# 1) Simulação OFDM com QPSK seguindo passos do trabalho_4.pdf
+# 1) Simulação OFDM com QPSK
 def simulate_ofdm_qpsk():
     k = 2  # bits por símbolo QPSK
     # Passo 2: gera bits aleatórios (2 linhas × total colunas)
