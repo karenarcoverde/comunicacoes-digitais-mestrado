@@ -15,6 +15,8 @@ def simulate_ofdm_qpsk():
     
     # Passo 3: mapeamento QPSK: s = (1 - 2*d1) + j*(1 - 2*d2)
     sym = (1 - 2*bits[0]) + 1j*(1 - 2*bits[1])
+    # Aqui faz o S/P: converte esse vetor serial em uma matriz N×S,
+    # onde cada coluna é um símbolo OFDM paralelo de N sub-portadoras.
     sym = sym.reshape((N, S), order='F')  # reorganiza em matriz N×S
     
     # Passo 4: IFFT para domínio do tempo
