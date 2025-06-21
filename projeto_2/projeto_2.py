@@ -24,13 +24,14 @@ def simulate_ofdm_qpsk():
     
     # Passo 5: adiciona prefixo cíclico (últimas CP linhas) e serializa
     tx_cp = np.vstack([tx[-CP:], tx]).reshape(-1, order='F')
-    P = np.mean(np.abs(tx_cp)**2)  # potência do sinal para AWGN
+    μ = np.mean(tx_cp)                                 # média complexa de tx_cp
+    signal_var = np.mean(np.abs(tx_cp - μ)**2)         # var(tx_cp) = E[|x–μ|²]
     
     ber = []
     for snr_db in SNRs_dB:
         # Passo 6: canal AWGN - adiciona ruído com variância adequada
         snr = 10**(snr_db/10)
-        noise_var = P / snr
+        noise_var = signal_var / snr
         noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
         rx = tx_cp + noise
         
@@ -56,8 +57,8 @@ def simulate_ofdm_qam(M):
     
     # Passo 2: gera vetor de bits aleatório de comprimento k*total
     bits = np.random.randint(0, 2, size=(k, total)).reshape(-1, order='F')
-    
-    # Passo 3: modula bits em símbolos QAM
+     
+    # Passo 3: modula bits em símbolos QAM e paraleliza
     sym = modem.modulate(bits).reshape((N, S), order='F')
     
     # Passo 4: IFFT
@@ -65,18 +66,20 @@ def simulate_ofdm_qam(M):
     
     # Passo 5: adiciona prefixo cíclico e serializa
     tx_cp = np.vstack([tx[-CP:], tx]).reshape(-1, order='F')
-    P     = np.mean(np.abs(tx_cp)**2)
+    μ = np.mean(tx_cp)                                 # média complexa de tx_cp
+    signal_var = np.mean(np.abs(tx_cp - μ)**2)         # var(tx_cp) = E[|x–μ|²]
     
     ber = []
     for snr_db in SNRs_dB:
         # Passo 6: canal AWGN
         snr = 10**(snr_db/10)
-        noise_var = P / snr
+        noise_var = signal_var / snr
         noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
         rx = tx_cp + noise
         
-        # Passo 7: remove prefixo cíclico e Passo 8: FFT
+        # Passo 7: paraleliza e remove prefixo cíclico
         rx_mat = rx.reshape((N+CP, S), order='F')[CP:,:]
+        #Passo 8: FFT e serializa
         y = np.fft.fft(rx_mat, axis=0).reshape(-1, order='F')
         
         # Passo 9: demodulação por decisão hard
