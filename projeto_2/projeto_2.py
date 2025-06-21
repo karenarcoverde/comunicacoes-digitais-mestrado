@@ -34,10 +34,10 @@ def simulate_ofdm_qpsk():
         noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
         rx = tx_cp + noise
         
-        # Passo 7: remove prefixo cíclico
+        # Passo 7: paraleliza e remove prefixo cíclico
         rx_mat = rx.reshape((N+CP, S), order='F')[CP:,:]
         
-        # Passo 8: FFT de volta para o domínio da frequência
+        # Passo 8: FFT de volta para o domínio da frequência e serializa
         y = np.fft.fft(rx_mat, axis=0).reshape(-1, order='F')
         
         # Passo 9: demodulação QPSK (decisão hard no sinal real/imaginário)
