@@ -120,8 +120,7 @@ def simulate_ofdm_qam(M):
 
          # — bloco de espectro símbolo 0 —
         freq_axis = np.linspace(-0.5, 0.5, N)
-        print(tx.size)
-        print(rx_mat.size)
+  
         t0  = tx[:, 0]
         r0  = rx_mat[:, 0]
         T0  = np.fft.fft(t0, N)
