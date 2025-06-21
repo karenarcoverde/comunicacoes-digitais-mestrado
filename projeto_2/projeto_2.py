@@ -50,12 +50,12 @@ def simulate_ofdm_qpsk():
         ber.append(errs / bits.size)
 
         # — bloco de espectro símbolo 0 —
-        freq_axis = np.linspace(-0.5, 0.5, tx.size)
-   
+        freq_axis = np.linspace(-0.5, 0.5, N)
+        
         t0  = tx[:, 0]
         r0  = rx_mat[:, 0]
-        T0  = np.fft.fft(t0, tx.size)
-        R0  = np.fft.fft(r0, tx.size)
+        T0  = np.fft.fft(t0, N)
+        R0  = np.fft.fft(r0, N)
 
         plt.figure(figsize=(6,6))
         plt.subplot(2,1,1)
@@ -119,12 +119,12 @@ def simulate_ofdm_qam(M):
 
 
          # — bloco de espectro símbolo 0 —
-        freq_axis = np.linspace(-0.5, 0.5, tx.size)
+        freq_axis = np.linspace(-0.5, 0.5, N)
   
         t0  = tx[:, 0]
         r0  = rx_mat[:, 0]
-        T0  = np.fft.fft(t0, tx.size)
-        R0  = np.fft.fft(r0, tx.size)
+        T0  = np.fft.fft(t0, N)
+        R0  = np.fft.fft(r0, N)
 
         plt.figure(figsize=(6,6))
         plt.subplot(2,1,1)
