@@ -48,6 +48,34 @@ def simulate_ofdm_qpsk():
         # Passo 10: calcula BER comparando com bits transmitidos
         errs = np.sum(bits != np.vstack([b1, b2]))
         ber.append(errs / bits.size)
+
+        # — bloco de espectro símbolo 0 —
+        freq_axis = np.linspace(-0.5, 0.5, N)
+        
+        t0  = tx[:, 0]
+        r0  = rx_mat[:, 0]
+        T0  = np.fft.fft(t0, N)
+        R0  = np.fft.fft(r0, N)
+
+        plt.figure(figsize=(6,6))
+        plt.subplot(2,1,1)
+        plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
+        plt.title('Espectro Antes (símbolo 0) – QPSK')
+        plt.xlabel('Frequência (Hz)')
+        plt.ylabel('Magnitude')
+        plt.grid(True)
+
+        plt.subplot(2,1,2)
+        plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
+        plt.title(f'Espectro Após AWGN ({snr_db} dB) – QPSK')
+        plt.xlabel('Frequência (Hz)')
+        plt.ylabel('Magnitude')
+        plt.grid(True)
+
+        plt.tight_layout()
+        plt.savefig(f'espectro_qpsk_{snr_db}dB.png')
+        plt.close()
+        # — fim bloco —
     return ber
 
 # 2) Simulação genérica M-QAM usando CommPy QAMModem
@@ -88,6 +116,32 @@ def simulate_ofdm_qam(M):
         # Passo 10: calcula BER comparando com vetor de bits transmitidos
         errs = np.sum(bits != bits_hat)
         ber.append(errs / bits.size)
+
+
+         # — bloco de espectro símbolo 0 —
+        freq_axis = np.linspace(-0.5, 0.5, N)
+        print(tx.size)
+        print(rx_mat.size)
+        t0  = tx[:, 0]
+        r0  = rx_mat[:, 0]
+        T0  = np.fft.fft(t0, N)
+        R0  = np.fft.fft(r0, N)
+
+        plt.figure(figsize=(6,6))
+        plt.subplot(2,1,1)
+        plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
+        plt.title(f'Espectro Antes (símbolo 0) – {M}-QAM')
+        plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
+
+        plt.subplot(2,1,2)
+        plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
+        plt.title(f'Espectro Após AWGN ({snr_db} dB) – {M}-QAM')
+        plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
+
+        plt.tight_layout()
+        plt.savefig(f'espectro_{M}qam_{snr_db}dB.png')
+        plt.close()
+        # — fim bloco —
     return ber
 
 # Executa simulações para QPSK, 16-QAM e 64-QAM
@@ -107,3 +161,6 @@ plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
 plt.show()
+
+
+
