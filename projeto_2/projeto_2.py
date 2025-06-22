@@ -8,7 +8,7 @@ from commpy.modulation import QAMModem
 N, CP, S = 64, 16, 10000            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
 SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
 total    = N * S                 # Total de símbolos transmitidos
-L = 10                           # número de taps do canal Rayleigh
+L = 20                           # número de taps do canal Rayleigh
 # --- Canal Rayleigh puro ---
 # h[n] = (hR + j hI)/sqrt(2), tamanho L
 h = (np.random.randn(L) + 1j*np.random.randn(L)) / np.sqrt(2*L)
@@ -63,7 +63,7 @@ def simulate_ofdm_qpsk():
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
+            if type == 'awgn':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -168,7 +168,7 @@ def simulate_ofdm_qam(M):
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
+            if type == 'awgn':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -218,70 +218,70 @@ def simulate_ofdm_qam(M):
 
     return ber_awgn, ber_ray, ber_ray_awgn
 
-# Executa simulações para QPSK, 16-QAM e 64-QAM
-# BER_AWGN_QPSK, BER_RAY_QPSK, BER_RAY_AWGN_QPSK = simulate_ofdm_qpsk()
-# BER_AWGN_16QAM, BER_RAY_16QAM, BER_RAY_AWGN_16QAM = simulate_ofdm_qam(16)
-# BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
+#Executa simulações para QPSK, 16-QAM e 64-QAM
+BER_AWGN_QPSK, BER_RAY_QPSK, BER_RAY_AWGN_QPSK = simulate_ofdm_qpsk()
+BER_AWGN_16QAM, BER_RAY_16QAM, BER_RAY_AWGN_16QAM = simulate_ofdm_qam(16)
+BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
 
-# # 1) Canal AWGN
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_AWGN_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_AWGN_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal AWGN')
-# # fixa os ticks em potências de 10
-# yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
-# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
-# plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_awgn.png')
-# plt.close()
+# 1) Canal AWGN
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_AWGN_QPSK,  'o-', label='QPSK')
+plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 's-', label='16-QAM')
+plt.semilogy(SNRs_dB, BER_AWGN_64QAM, '^-', label='64-QAM')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('BER vs SNR — Canal AWGN')
+# fixa os ticks em potências de 10
+yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
+plt.yticks(yticks, ylabels)
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_awgn.png')
+plt.close()
 
-# # 2) Canal Rayleigh puro
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_RAY_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_RAY_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal Rayleigh')
-# # fixa os ticks em potências de 10
-# yticks = [1, 1e-1, 1e-2, 1e-3]
-# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-# plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_ray.png')
-# plt.close()
-
-
-# # 2) Canal Rayleigh + AWGN
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal Rayleigh + AWGN')
-# # fixa os ticks em potências de 10
-# yticks = [1, 1e-1, 1e-2, 1e-3]
-# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-# plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_ray_awgn.png')
-# plt.close()
+# 2) Canal Rayleigh puro
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_RAY_QPSK,  'o-', label='QPSK')
+plt.semilogy(SNRs_dB, BER_RAY_16QAM, 's-', label='16-QAM')
+plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('BER vs SNR — Canal Rayleigh')
+# fixa os ticks em potências de 10
+yticks = [1, 1e-1, 1e-2, 1e-3]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+plt.yticks(yticks, ylabels)
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_ray.png')
+plt.close()
 
 
+# 2) Canal Rayleigh + AWGN
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK,  'o-', label='QPSK')
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 's-', label='16-QAM')
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('BER vs SNR — Canal Rayleigh + AWGN')
+# fixa os ticks em potências de 10
+yticks = [1, 1e-1, 1e-2, 1e-3]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+plt.yticks(yticks, ylabels)
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_ray_awgn.png')
+plt.close()
 
 
-CP_list = [8, 16, 32]
+
+
+CP_list = [8,16,32]
 mods = [
     (simulate_ofdm_qpsk, 'QPSK'),
     (lambda: simulate_ofdm_qam(16), '16-QAM'),
