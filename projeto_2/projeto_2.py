@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('Agg') 
+matplotlib.use('TkAgg')
 from commpy.modulation import QAMModem
 
 # Parâmetros OFDM
@@ -317,7 +317,6 @@ for mod_func, mod_label in mods:
 
         # em vez de plt.show(), salve o arquivo:
         filename = f'BER_{mod_label}_{canal_key}.png'.replace('+','p').replace(' ','_')
-        plt.savefig(filename, dpi=300)
+        plt.show()
         plt.close()
-        print(f'Salvo: {filename}')
 
