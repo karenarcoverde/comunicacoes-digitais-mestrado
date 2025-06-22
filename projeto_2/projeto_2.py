@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg') 
 from commpy.modulation import QAMModem
 
 # Parâmetros OFDM
@@ -61,7 +63,7 @@ def simulate_ofdm_qpsk():
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
+            if type == 'awgn':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -166,7 +168,7 @@ def simulate_ofdm_qam(M):
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
+            if type == 'awgn':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -236,7 +238,8 @@ plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
-plt.show()
+plt.savefig('ber_awgn.png')
+plt.close()
 
 # 2) Canal Rayleigh puro
 plt.figure(figsize=(8,5))
@@ -253,7 +256,8 @@ plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
-plt.show()
+plt.savefig('ber_ray.png')
+plt.close()
 
 
 # 2) Canal Rayleigh + AWGN
@@ -271,7 +275,49 @@ plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
-plt.show()
+plt.savefig('ber_ray_awgn.png')
+plt.close()
 
 
+
+
+CP_list = [8, 16, 32]
+mods = [
+    (simulate_ofdm_qpsk, 'QPSK'),
+    (lambda: simulate_ofdm_qam(16), '16-QAM'),
+    (lambda: simulate_ofdm_qam(64), '64-QAM')
+]
+canals = [
+    ('AWGN',    lambda awgn, ray, rawn: awgn),
+    ('Rayleigh',lambda awgn, ray, rawn: ray),
+    ('Rayleigh+AWGN', lambda awgn, ray, rawn: rawn)
+]
+
+for mod_func, mod_label in mods:
+    for canal_key, select_ber in canals:
+        plt.figure(figsize=(8,5))
+        for CP in CP_list:
+            globals()['CP'] = CP
+            ber_awgn, ber_ray, ber_rawn = mod_func()
+            ber = select_ber(ber_awgn, ber_ray, ber_rawn)
+            plt.semilogy(
+                SNRs_dB, ber, '-o',
+                label=f'CP={CP}'
+            )
+
+        plt.title(f'{mod_label} — {canal_key}')
+        plt.xlabel('SNR (dB)')
+        plt.ylabel('BER')
+        yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4]
+        ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$']
+        plt.yticks(yticks, ylabels)
+        plt.grid(which='both', ls='--', alpha=0.6)
+        plt.legend(title='Prefixo Cíclico', loc='upper right')
+        plt.tight_layout()
+
+        # em vez de plt.show(), salve o arquivo:
+        filename = f'BER_{mod_label}_{canal_key}.png'.replace('+','p').replace(' ','_')
+        plt.savefig(filename, dpi=300)
+        plt.close()
+        print(f'Salvo: {filename}')
 
