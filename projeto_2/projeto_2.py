@@ -308,7 +308,7 @@ for mod_func, mod_label in mods:
         plt.title(f'{mod_label} — {canal_key}')
         plt.xlabel('SNR (dB)')
         plt.ylabel('BER')
-        yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4]
+        yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
         ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$']
         plt.yticks(yticks, ylabels)
         plt.grid(which='both', ls='--', alpha=0.6)
@@ -317,6 +317,9 @@ for mod_func, mod_label in mods:
 
         # em vez de plt.show(), salve o arquivo:
         filename = f'BER_{mod_label}_{canal_key}.png'.replace('+','p').replace(' ','_')
+        # plt.savefig(filename, dpi=300)
+        # plt.close()
+        # print(f'Salvo: {filename}')
         plt.show()
         plt.close()
 
