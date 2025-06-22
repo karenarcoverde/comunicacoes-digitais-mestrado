@@ -8,7 +8,7 @@ from commpy.modulation import QAMModem
 N, CP, S = 64, 16, 10000            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
 SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
 total    = N * S                 # Total de símbolos transmitidos
-L = 10                           # número de taps do canal Rayleigh
+L = 20                           # número de taps do canal Rayleigh
 # --- Canal Rayleigh puro ---
 # h[n] = (hR + j hI)/sqrt(2), tamanho L
 h = (np.random.randn(L) + 1j*np.random.randn(L)) / np.sqrt(2*L)
@@ -63,7 +63,7 @@ def simulate_ofdm_qpsk():
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn':
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -168,7 +168,7 @@ def simulate_ofdm_qam(M):
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn':
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
