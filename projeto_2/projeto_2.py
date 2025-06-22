@@ -8,7 +8,7 @@ from commpy.modulation import QAMModem
 N, CP, S = 64, 16, 10000            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
 SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
 total    = N * S                 # Total de símbolos transmitidos
-L = 20                           # número de taps do canal Rayleigh
+L = 10                           # número de taps do canal Rayleigh
 # --- Canal Rayleigh puro ---
 # h[n] = (hR + j hI)/sqrt(2), tamanho L
 h = (np.random.randn(L) + 1j*np.random.randn(L)) / np.sqrt(2*L)
@@ -232,9 +232,9 @@ plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal AWGN')
 # fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
-plt.yticks(yticks, ylabels)
+# yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
+# plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
@@ -250,9 +250,9 @@ plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal Rayleigh')
 # fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-plt.yticks(yticks, ylabels)
+# yticks = [1, 1e-1, 1e-2, 1e-3]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+# plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
@@ -269,9 +269,9 @@ plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal Rayleigh + AWGN')
 # fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-plt.yticks(yticks, ylabels)
+# yticks = [1, 1e-1, 1e-2, 1e-3]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+# plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
@@ -308,18 +308,18 @@ for mod_func, mod_label in mods:
         plt.title(f'{mod_label} — {canal_key}')
         plt.xlabel('SNR (dB)')
         plt.ylabel('BER')
-        yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-        ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$']
-        plt.yticks(yticks, ylabels)
+        # yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
+        # ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$']
+        # plt.yticks(yticks, ylabels)
         plt.grid(which='both', ls='--', alpha=0.6)
         plt.legend(title='Prefixo Cíclico', loc='upper right')
         plt.tight_layout()
 
         # em vez de plt.show(), salve o arquivo:
         filename = f'BER_{mod_label}_{canal_key}.png'.replace('+','p').replace(' ','_')
-        # plt.savefig(filename, dpi=300)
-        # plt.close()
-        # print(f'Salvo: {filename}')
-        plt.show()
+        plt.savefig(filename, dpi=300)
         plt.close()
+        print(f'Salvo: {filename}')
+        # plt.show()
+        # plt.close()
 
