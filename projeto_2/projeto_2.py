@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from commpy.modulation import QAMModem
 
 # Parâmetros OFDM
-N, CP, S = 64, 16, 10            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
+N, CP, S = 64, 16, 10000            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
 SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
 total    = N * S                 # Total de símbolos transmitidos
 L = 10                           # número de taps do canal Rayleigh
@@ -60,7 +60,8 @@ def simulate_ofdm_qpsk():
             # sempre faz FFT
             Y = np.fft.fft(mat, axis=0)   # N×S
 
-            if type == 'awgn':
+            # or type == 'ray'
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -164,7 +165,8 @@ def simulate_ofdm_qam(M):
             # sempre faz FFT
             Y = np.fft.fft(mat, axis=0)   # N×S
 
-            if type == 'awgn':
+            # or type == 'ray'
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -228,8 +230,8 @@ plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal AWGN')
 # fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$']
+yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
 plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
@@ -244,6 +246,9 @@ plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
 plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal Rayleigh')
+# fixa os ticks em potências de 10
+yticks = [1, 1e-1, 1e-2, 1e-3]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
 plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
@@ -259,6 +264,9 @@ plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
 plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
 plt.title('BER vs SNR — Canal Rayleigh + AWGN')
+# fixa os ticks em potências de 10
+yticks = [1, 1e-1, 1e-2, 1e-3]
+ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
 plt.yticks(yticks, ylabels)
 plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
