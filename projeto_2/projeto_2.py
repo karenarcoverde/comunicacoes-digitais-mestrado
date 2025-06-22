@@ -63,7 +63,7 @@ def simulate_ofdm_qpsk():
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn':
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
@@ -87,24 +87,24 @@ def simulate_ofdm_qpsk():
             T0  = np.fft.fft(t0, N)
             R0  = np.fft.fft(r0, N)
 
-            plt.figure(figsize=(6,6))
-            plt.subplot(2,1,1)
-            plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
-            plt.title('Espectro Antes (símbolo 0) – QPSK')
-            plt.xlabel('Frequência (Hz)')
-            plt.ylabel('Magnitude')
-            plt.grid(True)
+            # plt.figure(figsize=(6,6))
+            # plt.subplot(2,1,1)
+            # plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
+            # plt.title('Espectro Antes (símbolo 0) – QPSK')
+            # plt.xlabel('Frequência (Hz)')
+            # plt.ylabel('Magnitude')
+            # plt.grid(True)
 
-            plt.subplot(2,1,2)
-            plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
-            plt.title(f'Espectro Após AWGN ({snr_db} dB) – QPSK')
-            plt.xlabel('Frequência (Hz)')
-            plt.ylabel('Magnitude')
-            plt.grid(True)
+            # plt.subplot(2,1,2)
+            # plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
+            # plt.title(f'Espectro Após AWGN ({snr_db} dB) – QPSK')
+            # plt.xlabel('Frequência (Hz)')
+            # plt.ylabel('Magnitude')
+            # plt.grid(True)
 
-            plt.tight_layout()
-            plt.savefig(f'espectro_qpsk_{snr_db}dB.png')
-            plt.close()
+            # plt.tight_layout()
+            # plt.savefig(f'espectro_qpsk_{snr_db}dB.png')
+            # plt.close()
             # — fim bloco —
 
             # Passo 10: calcula BER comparando com bits transmitidos
@@ -168,11 +168,11 @@ def simulate_ofdm_qam(M):
             Y = np.fft.fft(mat, axis=0)   # N×S
 
             # or type == 'ray'
-            if type == 'awgn':
+            if type == 'awgn' or type == 'ray':
                 # AWGN puro → não tem fading, basta serializar
                 y = Y.reshape(-1, order='F')
             else:
-                # Rayleigh puro ou Rayleigh+AWGN → equaliza
+                # Rayleigh+AWGN → equaliza
                 H_fft = np.fft.fft(h, N)
                 # evita divisões por valores muito pequenos
                 H_fft[np.abs(H_fft) < 1e-3] = 1e-3
@@ -191,20 +191,20 @@ def simulate_ofdm_qam(M):
             T0  = np.fft.fft(t0, N)
             R0  = np.fft.fft(r0, N)
 
-            plt.figure(figsize=(6,6))
-            plt.subplot(2,1,1)
-            plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
-            plt.title(f'Espectro Antes (símbolo 0) – {M}-QAM')
-            plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
+            # plt.figure(figsize=(6,6))
+            # plt.subplot(2,1,1)
+            # plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
+            # plt.title(f'Espectro Antes (símbolo 0) – {M}-QAM')
+            # plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
 
-            plt.subplot(2,1,2)
-            plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
-            plt.title(f'Espectro Após AWGN ({snr_db} dB) – {M}-QAM')
-            plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
+            # plt.subplot(2,1,2)
+            # plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
+            # plt.title(f'Espectro Após AWGN ({snr_db} dB) – {M}-QAM')
+            # plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
 
-            plt.tight_layout()
-            plt.savefig(f'espectro_{M}qam_{snr_db}dB.png')
-            plt.close()
+            # plt.tight_layout()
+            # plt.savefig(f'espectro_{M}qam_{snr_db}dB.png')
+            # plt.close()
             # — fim bloco —
 
             # Passo 10: calcula BER comparando com vetor de bits transmitidos
@@ -219,64 +219,64 @@ def simulate_ofdm_qam(M):
     return ber_awgn, ber_ray, ber_ray_awgn
 
 # Executa simulações para QPSK, 16-QAM e 64-QAM
-BER_AWGN_QPSK, BER_RAY_QPSK, BER_RAY_AWGN_QPSK = simulate_ofdm_qpsk()
-BER_AWGN_16QAM, BER_RAY_16QAM, BER_RAY_AWGN_16QAM = simulate_ofdm_qam(16)
-BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
+# BER_AWGN_QPSK, BER_RAY_QPSK, BER_RAY_AWGN_QPSK = simulate_ofdm_qpsk()
+# BER_AWGN_16QAM, BER_RAY_16QAM, BER_RAY_AWGN_16QAM = simulate_ofdm_qam(16)
+# BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
 
-# 1) Canal AWGN
-plt.figure(figsize=(8,5))
-plt.semilogy(SNRs_dB, BER_AWGN_QPSK,  'o-', label='QPSK')
-plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 's-', label='16-QAM')
-plt.semilogy(SNRs_dB, BER_AWGN_64QAM, '^-', label='64-QAM')
-plt.xlabel('SNR (dB)')
-plt.ylabel('BER')
-plt.title('BER vs SNR — Canal AWGN')
-# fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
-plt.yticks(yticks, ylabels)
-plt.grid(which='both', ls='--', alpha=0.6)
-plt.legend()
-plt.tight_layout()
-plt.savefig('ber_awgn.png')
-plt.close()
+# # 1) Canal AWGN
+# plt.figure(figsize=(8,5))
+# plt.semilogy(SNRs_dB, BER_AWGN_QPSK,  'o-', label='QPSK')
+# plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 's-', label='16-QAM')
+# plt.semilogy(SNRs_dB, BER_AWGN_64QAM, '^-', label='64-QAM')
+# plt.xlabel('SNR (dB)')
+# plt.ylabel('BER')
+# plt.title('BER vs SNR — Canal AWGN')
+# # fixa os ticks em potências de 10
+# yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
+# plt.yticks(yticks, ylabels)
+# plt.grid(which='both', ls='--', alpha=0.6)
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('ber_awgn.png')
+# plt.close()
 
-# 2) Canal Rayleigh puro
-plt.figure(figsize=(8,5))
-plt.semilogy(SNRs_dB, BER_RAY_QPSK,  'o-', label='QPSK')
-plt.semilogy(SNRs_dB, BER_RAY_16QAM, 's-', label='16-QAM')
-plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
-plt.xlabel('SNR (dB)')
-plt.ylabel('BER')
-plt.title('BER vs SNR — Canal Rayleigh')
-# fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-plt.yticks(yticks, ylabels)
-plt.grid(which='both', ls='--', alpha=0.6)
-plt.legend()
-plt.tight_layout()
-plt.savefig('ber_ray.png')
-plt.close()
+# # 2) Canal Rayleigh puro
+# plt.figure(figsize=(8,5))
+# plt.semilogy(SNRs_dB, BER_RAY_QPSK,  'o-', label='QPSK')
+# plt.semilogy(SNRs_dB, BER_RAY_16QAM, 's-', label='16-QAM')
+# plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
+# plt.xlabel('SNR (dB)')
+# plt.ylabel('BER')
+# plt.title('BER vs SNR — Canal Rayleigh')
+# # fixa os ticks em potências de 10
+# yticks = [1, 1e-1, 1e-2, 1e-3]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+# plt.yticks(yticks, ylabels)
+# plt.grid(which='both', ls='--', alpha=0.6)
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('ber_ray.png')
+# plt.close()
 
 
-# 2) Canal Rayleigh + AWGN
-plt.figure(figsize=(8,5))
-plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK,  'o-', label='QPSK')
-plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 's-', label='16-QAM')
-plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
-plt.xlabel('SNR (dB)')
-plt.ylabel('BER')
-plt.title('BER vs SNR — Canal Rayleigh + AWGN')
-# fixa os ticks em potências de 10
-yticks = [1, 1e-1, 1e-2, 1e-3]
-ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-plt.yticks(yticks, ylabels)
-plt.grid(which='both', ls='--', alpha=0.6)
-plt.legend()
-plt.tight_layout()
-plt.savefig('ber_ray_awgn.png')
-plt.close()
+# # 2) Canal Rayleigh + AWGN
+# plt.figure(figsize=(8,5))
+# plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK,  'o-', label='QPSK')
+# plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 's-', label='16-QAM')
+# plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
+# plt.xlabel('SNR (dB)')
+# plt.ylabel('BER')
+# plt.title('BER vs SNR — Canal Rayleigh + AWGN')
+# # fixa os ticks em potências de 10
+# yticks = [1, 1e-1, 1e-2, 1e-3]
+# ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
+# plt.yticks(yticks, ylabels)
+# plt.grid(which='both', ls='--', alpha=0.6)
+# plt.legend()
+# plt.tight_layout()
+# plt.savefig('ber_ray_awgn.png')
+# plt.close()
 
 
 
