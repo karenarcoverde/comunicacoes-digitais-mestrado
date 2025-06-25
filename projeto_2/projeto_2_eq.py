@@ -324,6 +324,89 @@ BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
 #         # plt.close()
 
 
+def simulate_ofdm_qpsk_rep(r=3, canal="rayleigh_awgn"):
+    k = 2  # bits por símbolo QPSK
+    bits = np.random.randint(0, 2, size=(k, total))
+    bits_rep = np.repeat(bits, r, axis=1)
+
+    sym = (1 - 2*bits_rep[0]) + 1j*(1 - 2*bits_rep[1])
+    sym = sym.reshape((N, -1), order='F')
+
+    tx = np.fft.ifft(sym, axis=0)
+    tx_cp = np.vstack([tx[-CP:], tx]).reshape(-1, order='F')
+    μ = np.mean(tx_cp)
+    signal_var = np.mean(np.abs(tx_cp - μ)**2)
+
+    ber_rep = []
+
+    for snr_db in SNRs_dB:
+        snr = 10**(snr_db/10)
+        noise_var = signal_var / snr
+        noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
+
+        if canal == "awgn":
+            rx = tx_cp + noise
+        elif canal == "rayleigh_awgn":
+            rx = np.convolve(tx_cp, h, mode='full')[:tx_cp.size] + noise
+        else:
+            raise ValueError("Canal deve ser 'awgn' ou 'rayleigh_awgn'.")
+
+        mat = rx.reshape((N+CP, -1), order='F')[CP:, :]
+        Y = np.fft.fft(mat, axis=0)
+
+        if canal == "rayleigh_awgn":
+            H_fft = np.fft.fft(h, N)
+            H_fft[np.abs(H_fft) < 1e-3] = 1e-3
+            Y = Y / H_fft[:, None]
+
+        y = Y.reshape(-1, order='F')
+        b1_rep = (y.real < 0).astype(int)
+        b2_rep = (y.imag < 0).astype(int)
+
+        valid_len = (b1_rep.size // r) * r
+        b1_rep = b1_rep[:valid_len].reshape(-1, r)
+        b2_rep = b2_rep[:valid_len].reshape(-1, r)
+
+        b1_dec = (np.sum(b1_rep, axis=1) > r / 2).astype(int)
+        b2_dec = (np.sum(b2_rep, axis=1) > r / 2).astype(int)
+
+        b1_ref = bits[0, :len(b1_dec)]
+        b2_ref = bits[1, :len(b2_dec)]
+        err = np.sum(b1_dec != b1_ref) + np.sum(b2_dec != b2_ref)
+        total_bits = b1_ref.size + b2_ref.size
+        ber_rep.append(err / total_bits)
+
+    return ber_rep
+
+BER_AWGN_QPSK_REP = simulate_ofdm_qpsk_rep(r=3, canal="awgn")
+BER_RAY_AWGN_QPSK_REP = simulate_ofdm_qpsk_rep(r=3, canal="rayleigh_awgn")
+
+# Canal AWGN
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_AWGN_QPSK, 'o-', label='Sem Repetição - AWGN')
+plt.semilogy(SNRs_dB, BER_AWGN_QPSK_REP, 's--', label='Com Repetição (r=3) - AWGN')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('QPSK — Código de Repetição — Canal AWGN')
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_qpsk_rep_awgn.png', dpi=300)
+plt.close()
+
+# Canal Rayleigh + AWGN
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK, 'o-', label='Sem Repetição - Rayleigh+AWGN')
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK_REP, 's--', label='Com Repetição (r=3) - Rayleigh+AWGN')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('QPSK — Código de Repetição — Canal Rayleigh + AWGN')
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_qpsk_rep_rayleigh_awgn.png', dpi=300)
+plt.close()
+
 
 def simulate_ofdm_qam_rep(M, r=3, canal="rayleigh_awgn"):
     modem = QAMModem(M)
@@ -401,4 +484,32 @@ plt.grid(which='both', ls='--', alpha=0.6)
 plt.legend()
 plt.tight_layout()
 plt.savefig('ber_64qam_rep_rayleigh_awgn.png', dpi=300)
+plt.close()
+
+
+BER_AWGN_16QAM_REP = simulate_ofdm_qam_rep(16, r=3, canal="awgn")
+BER_RAY_AWGN_16QAM_REP = simulate_ofdm_qam_rep(16, r=3, canal="rayleigh_awgn")
+
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 'o-', label='Sem Repetição - AWGN')
+plt.semilogy(SNRs_dB, BER_AWGN_16QAM_REP, 's--', label='Com Repetição (r=3) - AWGN')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('16-QAM — Código de Repetição — Canal AWGN')
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_16qam_rep_awgn.png', dpi=300)
+plt.close()
+
+plt.figure(figsize=(8,5))
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 'o-', label='Sem Repetição - Rayleigh+AWGN')
+plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM_REP, 's--', label='Com Repetição (r=3) - Rayleigh+AWGN')
+plt.xlabel('SNR (dB)')
+plt.ylabel('BER')
+plt.title('16-QAM — Código de Repetição — Canal Rayleigh + AWGN')
+plt.grid(which='both', ls='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+plt.savefig('ber_16qam_rep_rayleigh_awgn.png', dpi=300)
 plt.close()
