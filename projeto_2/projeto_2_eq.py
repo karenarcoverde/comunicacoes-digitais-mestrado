@@ -1,377 +1,144 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('TkAgg')
-from commpy.modulation import QAMModem
+from scipy.signal import convolve
+from numpy.fft import fft, ifft
 
-# Parâmetros OFDM
-N, CP, S = 64, 16, 10000            # Número de subportadoras, comprimento do prefixo cíclico, símbolos OFDM
-SNRs_dB  = np.arange(-10, 21, 5) # Faixa de SNR em dB
-total    = N * S                 # Total de símbolos transmitidos
-L = 1                           # número de taps do canal Rayleigh
-# --- Canal Rayleigh puro ---
-# h[n] = (hR + j hI)/sqrt(2), tamanho L
-h = (np.random.randn(L) + 1j*np.random.randn(L)) / np.sqrt(2*L)
+# === Parâmetros do sistema OFDM ===
+N = 64
+CP = 16
+S = int(1e4)
+M = 64
+b = int(np.log2(M))
+SNR_dB = np.arange(-10, 25, 5)
+r = 3
+L = 1
 
-rep = 3  # 1 para sem código, 3 para repetição
+# === Escolha do tipo de canal ===
+canal_rayleigh = False  # True para Rayleigh + AWGN, False para apenas AWGN
 
+# Canal Rayleigh (se ativado)
+if canal_rayleigh:
+    h = (np.random.randn(L) + 1j*np.random.randn(L)) / np.sqrt(2 * L)
+else:
+    h = np.array([1.0])  # canal ideal (AWGN)
 
+# === Geração de bits ===
+d = np.random.randint(0, 2, b * N * S)
+num_bits = len(d)
+d_rep = np.repeat(d, r)
 
-# 1) Simulação OFDM com QPSK
-def simulate_ofdm_qpsk(use_repetition=False):
-    k = 2  # bits por símbolo QPSK
-    # Passo 2: gera bits aleatórios (2 linhas × total colunas)
-    bits = np.random.randint(0, 2, size=(k, total))
-    if use_repetition:
-        S_eff = S * rep
+BER_sem_cod = []
+BER_com_cod = []
+
+# === Modulação QAM ===
+def qam_mod(bits, M):
+    b = int(np.log2(M))
+    symbols = np.array([int("".join(str(bi) for bi in bits[i:i + b]), 2)
+                        for i in range(0, len(bits), b)])
+    sqrt_M = int(np.sqrt(M))
+    I = 2 * (symbols % sqrt_M) - sqrt_M + 1
+    Q = 2 * (symbols // sqrt_M) - sqrt_M + 1
+    qam = I + 1j * Q
+    norm_factor = np.sqrt(np.mean(np.abs(qam) ** 2))
+    qam = qam / norm_factor
+    return qam, norm_factor
+
+# === Demodulação QAM ===
+def qam_demod(symbols, M, norm_factor):
+    sqrt_M = int(np.sqrt(M))
+    symbols = symbols * norm_factor
+    I = np.round((np.real(symbols) + sqrt_M - 1) / 2).astype(int)
+    Q = np.round((np.imag(symbols) + sqrt_M - 1) / 2).astype(int)
+    I = np.clip(I, 0, sqrt_M - 1)
+    Q = np.clip(Q, 0, sqrt_M - 1)
+    symbols_idx = Q * sqrt_M + I
+    b = int(np.log2(M))
+    bits = np.array([list(np.binary_repr(int(i), b)) for i in symbols_idx], dtype=int).flatten()
+    return bits
+
+# === Loop sobre SNR ===
+for snr_db in SNR_dB:
+    snr_linear = 10 ** (snr_db / 10)
+
+    # === SEM Correção ===
+    symbols, norm_factor = qam_mod(d, M)
+    symbols_matrix = symbols.reshape(N, -1)
+    ofdm_time = ifft(symbols_matrix, axis=0)
+    ofdm_cp = np.vstack([ofdm_time[-CP:], ofdm_time])
+    tx_signal = ofdm_cp.flatten()
+
+    noise_var = np.var(tx_signal) / snr_linear
+    noise = np.sqrt(noise_var / 2) * (np.random.randn(len(tx_signal)) + 1j * np.random.randn(len(tx_signal)))
+
+    if canal_rayleigh:
+        rx_signal = convolve(tx_signal, h, mode='full')[:len(tx_signal)] + noise
     else:
-        S_eff = S
-    # --- repetição ---
-    if use_repetition:
-        bits_tx = np.repeat(bits, rep, axis=1)
+        rx_signal = tx_signal + noise
+
+    rx_matrix = rx_signal.reshape(N + CP, -1)
+    rx_no_cp = rx_matrix[CP:, :]
+    rx_freq = fft(rx_no_cp, axis=0)
+
+    if canal_rayleigh:
+        h_pad = np.zeros(N, dtype=complex)
+        h_pad[:L] = h
+        H = fft(h_pad, N)
+        H[np.abs(H) < 1e-3] = 1e-3
+        rx_eq = rx_freq / H[:, None]
     else:
-        bits_tx = bits
-    
-    # Passo 3: mapeamento QPSK: s = (1 - 2*d1) + j*(1 - 2*d2)
-    sym = (1 - 2*bits_tx[0]) + 1j*(1 - 2*bits_tx[1])
-    # Aqui faz o S/P: converte esse vetor serial em uma matriz N×S,
-    # onde cada coluna é um símbolo OFDM paralelo de N sub-portadoras.
-    sym = sym.reshape((N, S_eff), order='F')  # reorganiza em matriz N×S
-    
-    # Passo 4: IFFT para domínio do tempo
-    tx = np.fft.ifft(sym, axis=0)
-    
-    # Passo 5: adiciona prefixo cíclico (últimas CP linhas) e serializa
-    tx_cp = np.vstack([tx[-CP:], tx]).reshape(-1, order='F')
-    μ = np.mean(tx_cp)                                 # média complexa de tx_cp
-    signal_var = np.mean(np.abs(tx_cp - μ)**2)         # var(tx_cp) = E[|x–μ|²]
-    
-    ber_awgn = []
-    ber_ray  = []
-    ber_ray_awgn = []
+        rx_eq = rx_freq
 
-    for snr_db in SNRs_dB:
-        # Passo 6: canal AWGN - adiciona ruído com variância adequada
-        snr = 10**(snr_db/10)
-        noise_var = signal_var / snr
-        # --- AWGN puro ---
-        noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
-        rx_awgn = tx_cp + noise
+    rx_symbols = rx_eq.flatten()
+    d_hat = qam_demod(rx_symbols, M, norm_factor)
+    BER_sem_cod.append(np.sum(d[:len(d_hat)] != d_hat[:len(d)]) / num_bits)
 
-        
-        # convolução tx_cp * h
-        rx_ray = np.convolve(tx_cp, h, mode='full')[:tx_cp.size]
+    # === COM Correção ===
+    symbols_rep, norm_factor_rep = qam_mod(d_rep, M)
+    symbols_matrix = symbols_rep.reshape(N, -1)
+    ofdm_time = ifft(symbols_matrix, axis=0)
+    ofdm_cp = np.vstack([ofdm_time[-CP:], ofdm_time])
+    tx_signal = ofdm_cp.flatten()
 
-        # --- Rayleigh + AWGN ---
-        noise2 = np.sqrt(noise_var/2)*(np.random.randn(*rx_ray.shape)
-                                      +1j*np.random.randn(*rx_ray.shape))
-        rx_ray_awgn = rx_ray + noise2
-        
-        # função auxiliar de recebimento, FFT, demod e BER
-        def ofdm_recv(s,type):
-            # Passo 7: paraleliza e remove prefixo cíclico
-            mat = s.reshape((N+CP, S_eff), order='F')[CP:,:]
-            # Passo 8: FFT de volta para o domínio da frequência e serializa
-            # sempre faz FFT
-            Y = np.fft.fft(mat, axis=0)   # N×S
+    noise_var = np.var(tx_signal) / snr_linear
+    noise = np.sqrt(noise_var / 2) * (np.random.randn(len(tx_signal)) + 1j * np.random.randn(len(tx_signal)))
 
-            # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
-                # AWGN puro → não tem fading, basta serializar
-                y = Y.reshape(-1, order='F')
-            else:
-                # Rayleigh puro ou Rayleigh+AWGN → equaliza
-                H_fft = np.fft.fft(h, N)
-                # evita divisões por valores muito pequenos
-                H_fft[np.abs(H_fft) < 1e-3] = 1e-3
-                Y_eq = Y / H_fft[:,None]
-                y     = Y_eq.reshape(-1, order='F')
-
-
-            # Passo 9: demodulação QPSK (decisão hard no sinal real/imaginário)
-            b1  = (y.real<0).astype(int)
-            b2  = (y.imag<0).astype(int)
-
-            # — bloco de espectro símbolo 0 —
-            freq_axis = np.linspace(-0.5, 0.5, N)
-            
-            t0  = tx[:, 0]
-            r0  = mat[:, 0]
-            T0  = np.fft.fft(t0, N)
-            R0  = np.fft.fft(r0, N)
-
-            # plt.figure(figsize=(6,6))
-            # plt.subplot(2,1,1)
-            # plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
-            # plt.title('Espectro Antes (símbolo 0) – QPSK')
-            # plt.xlabel('Frequência (Hz)')
-            # plt.ylabel('Magnitude')
-            # plt.grid(True)
-
-            # plt.subplot(2,1,2)
-            # plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
-            # plt.title(f'Espectro Após AWGN ({snr_db} dB) – QPSK')
-            # plt.xlabel('Frequência (Hz)')
-            # plt.ylabel('Magnitude')
-            # plt.grid(True)
-
-            # plt.tight_layout()
-            # plt.savefig(f'espectro_qpsk_{snr_db}dB.png')
-            # plt.close()
-            # — fim bloco —
-
-            # Passo 10: calcula BER comparando com bits transmitidos
-            raw_hat = np.vstack([b1,b2])
-            if use_repetition:
-                # votação majoritária nos rep símbolos repetidos
-                bits_hat = (raw_hat.reshape(rep, -1).sum(axis=0) >= 2).astype(int)
-            else:
-                # sem código, diretamente o raw_hat
-                bits_hat = raw_hat
-           
-            return np.mean(bits != bits_hat)
-        
-        ber_awgn.append(ofdm_recv(rx_awgn,'awgn'))
-        ber_ray.append(ofdm_recv(rx_ray,'ray'))
-        ber_ray_awgn.append(ofdm_recv(rx_ray_awgn,'ray_awgn'))
-
-
-    return ber_awgn, ber_ray, ber_ray_awgn
-
-
-# 2) Simulação genérica M-QAM usando CommPy QAMModem
-def simulate_ofdm_qam(M, use_repetition=False):
-    modem = QAMModem(M)                 # inicializa modem QAM
-    k     = modem.num_bits_symbol       # bits por símbolo QAM
-    
-    # Passo 2: gera vetor de bits aleatório de comprimento k*total
-    bits = np.random.randint(0, 2, size=(k, total)).reshape(-1, order='F')
-  
-    if use_repetition:
-        bits_rep = np.repeat(bits, rep)
-        S_eff    = S * rep
+    if canal_rayleigh:
+        rx_signal = convolve(tx_signal, h, mode='full')[:len(tx_signal)] + noise
     else:
-        bits_rep = bits
-        S_eff    = S
-     
-    # Passo 3: modula bits em símbolos QAM e paraleliza
-    sym = modem.modulate(bits_rep).reshape((N, S_eff), order='F')
-    
-    # Passo 4: IFFT
-    tx = np.fft.ifft(sym, axis=0)
-    
-    # Passo 5: adiciona prefixo cíclico e serializa
-    tx_cp = np.vstack([tx[-CP:], tx]).reshape(-1, order='F')
-    μ = np.mean(tx_cp)                                 # média complexa de tx_cp
-    signal_var = np.mean(np.abs(tx_cp - μ)**2)         # var(tx_cp) = E[|x–μ|²]
-    
-    ber_awgn = []
-    ber_ray  = []
-    ber_ray_awgn = []
+        rx_signal = tx_signal + noise
 
+    rx_matrix = rx_signal.reshape(N + CP, -1)
+    rx_no_cp = rx_matrix[CP:, :]
+    rx_freq = fft(rx_no_cp, axis=0)
 
-    for snr_db in SNRs_dB:
-        # Passo 6: canal AWGN
-        snr = 10**(snr_db/10)
-        noise_var = signal_var / snr
-        # --- AWGN puro ---
-        noise = np.sqrt(noise_var/2)*(np.random.randn(*tx_cp.shape) + 1j*np.random.randn(*tx_cp.shape))
-        rx_awgn = tx_cp + noise
+    if canal_rayleigh:
+        h_pad = np.zeros(N, dtype=complex)
+        h_pad[:L] = h
+        H = fft(h_pad, N)
+        H[np.abs(H) < 1e-3] = 1e-3
+        rx_eq = rx_freq / H[:, None]
+    else:
+        rx_eq = rx_freq
 
-        # convolução tx_cp * h
-        rx_ray = np.convolve(tx_cp, h, mode='full')[:tx_cp.size]
+    rx_symbols = rx_eq.flatten()
+    d_hat_rep = qam_demod(rx_symbols, M, norm_factor_rep)
 
-        # --- Rayleigh + AWGN ---
-        noise2 = np.sqrt(noise_var/2)*(np.random.randn(*rx_ray.shape)
-                                      +1j*np.random.randn(*rx_ray.shape))
-        rx_ray_awgn = rx_ray + noise2
-        
-        # função auxiliar de recebimento, FFT, demod e BER
-        def ofdm_recv(s,type):
-            # Passo 7: paraleliza e remove prefixo cíclico
-            mat = s.reshape((N+CP, S_eff), order='F')[CP:,:]
-            # Passo 8: FFT de volta para o domínio da frequência e serializa
-            # sempre faz FFT
-            Y = np.fft.fft(mat, axis=0)   # N×S
+    valid_length = (len(d_hat_rep) // r) * r
+    d_hat_rep = d_hat_rep[:valid_length]
+    d_hat_reshape = d_hat_rep.reshape(-1, r)
+    d_decod = (np.sum(d_hat_reshape, axis=1) > (r / 2)).astype(int)
 
-            # or type == 'ray'
-            if type == 'awgn' or type == 'ray':
-                # AWGN puro → não tem fading, basta serializar
-                y = Y.reshape(-1, order='F')
-            else:
-                # Rayleigh+AWGN → equaliza
-                H_fft = np.fft.fft(h, N)
-                # evita divisões por valores muito pequenos
-                H_fft[np.abs(H_fft) < 1e-3] = 1e-3
-                Y_eq = Y / H_fft[:,None]
-                y     = Y_eq.reshape(-1, order='F')
-                
+    BER_com_cod.append(np.sum(d != d_decod[:len(d)]) / num_bits)
 
-            # Passo 9: demodulação por decisão hard
-            raw_hat = modem.demodulate(y, 'hard') 
-            if use_repetition:
-                # votação majoritária nos rep símbolos repetidos
-                bits_hat = (raw_hat.reshape(rep, -1).sum(axis=0) >= 2).astype(int)
-            else:
-                # sem código, diretamente o raw_hat
-                bits_hat = raw_hat
-
-            
-
-            # — bloco de espectro símbolo 0 —
-            freq_axis = np.linspace(-0.5, 0.5, N)
-            
-            t0  = tx[:, 0]
-            r0  = mat[:, 0]
-            T0  = np.fft.fft(t0, N)
-            R0  = np.fft.fft(r0, N)
-
-            # plt.figure(figsize=(6,6))
-            # plt.subplot(2,1,1)
-            # plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
-            # plt.title(f'Espectro Antes (símbolo 0) – {M}-QAM')
-            # plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
-
-            # plt.subplot(2,1,2)
-            # plt.plot(freq_axis, np.abs(np.fft.fftshift(R0)))
-            # plt.title(f'Espectro Após AWGN ({snr_db} dB) – {M}-QAM')
-            # plt.xlabel('Frequência (Hz)'); plt.ylabel('Magnitude'); plt.grid(True)
-
-            # plt.tight_layout()
-            # plt.savefig(f'espectro_{M}qam_{snr_db}dB.png')
-            # plt.close()
-            # — fim bloco —
-
-            # Passo 10: calcula BER comparando com vetor de bits transmitidos
-               # Passo 10: calcula BER comparando com vetor de bits transmitidos
-            return np.mean(bits != bits_hat)
-
-        ber_awgn.append(ofdm_recv(rx_awgn,'awgn'))
-        ber_ray.append(ofdm_recv(rx_ray,'ray'))
-        ber_ray_awgn.append(ofdm_recv(rx_ray_awgn,'ray_awgn'))
-
-
-    return ber_awgn, ber_ray, ber_ray_awgn
-
-#Executa simulações para QPSK, 16-QAM e 64-QAM
-# BER_AWGN_QPSK, BER_RAY_QPSK, BER_RAY_AWGN_QPSK = simulate_ofdm_qpsk()
-# BER_AWGN_16QAM, BER_RAY_16QAM, BER_RAY_AWGN_16QAM = simulate_ofdm_qam(16)
-# BER_AWGN_64QAM, BER_RAY_64QAM, BER_RAY_AWGN_64QAM = simulate_ofdm_qam(64)
-
-# # 1) Canal AWGN
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_AWGN_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_AWGN_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_AWGN_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal AWGN')
-# # fixa os ticks em potências de 10
-# # yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4,1e-5,1e-6]
-# # ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$',r'$10^{-6}$']
-# # plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_awgn.png')
-# plt.close()
-
-# # 2) Canal Rayleigh puro
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_RAY_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_RAY_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_RAY_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal Rayleigh')
-# # fixa os ticks em potências de 10
-# # yticks = [1, 1e-1, 1e-2, 1e-3]
-# # ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-# # plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_ray.png')
-# plt.close()
-
-
-# # 2) Canal Rayleigh + AWGN
-# plt.figure(figsize=(8,5))
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_QPSK,  'o-', label='QPSK')
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_16QAM, 's-', label='16-QAM')
-# plt.semilogy(SNRs_dB, BER_RAY_AWGN_64QAM, '^-', label='64-QAM')
-# plt.xlabel('SNR (dB)')
-# plt.ylabel('BER')
-# plt.title('BER vs SNR — Canal Rayleigh + AWGN')
-# # fixa os ticks em potências de 10
-# # yticks = [1, 1e-1, 1e-2, 1e-3]
-# # ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$']
-# # plt.yticks(yticks, ylabels)
-# plt.grid(which='both', ls='--', alpha=0.6)
-# plt.legend()
-# plt.tight_layout()
-# plt.savefig('ber_ray_awgn.png')
-# plt.close()
-
-
-
-
-# CP_list = [8,16,32]
-# mods = [
-#     (simulate_ofdm_qpsk, 'QPSK'),
-#     (lambda: simulate_ofdm_qam(16), '16-QAM'),
-#     (lambda: simulate_ofdm_qam(64), '64-QAM')
-# ]
-# canals = [
-#     ('AWGN',    lambda awgn, ray, rawn: awgn),
-#     ('Rayleigh',lambda awgn, ray, rawn: ray),
-#     ('Rayleigh+AWGN', lambda awgn, ray, rawn: rawn)
-# ]
-
-# for mod_func, mod_label in mods:
-#     for canal_key, select_ber in canals:
-#         plt.figure(figsize=(8,5))
-#         for CP in CP_list:
-#             globals()['CP'] = CP
-#             ber_awgn, ber_ray, ber_rawn = mod_func()
-#             ber = select_ber(ber_awgn, ber_ray, ber_rawn)
-#             plt.semilogy(
-#                 SNRs_dB, ber, '-o',
-#                 label=f'CP={CP}'
-#             )
-
-#         plt.title(f'{mod_label} — {canal_key}')
-#         plt.xlabel('SNR (dB)')
-#         plt.ylabel('BER')
-#         # yticks = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
-#         # ylabels = [r'$10^0$', r'$10^{-1}$', r'$10^{-2}$', r'$10^{-3}$', r'$10^{-4}$', r'$10^{-5}$']
-#         # plt.yticks(yticks, ylabels)
-#         plt.grid(which='both', ls='--', alpha=0.6)
-#         plt.legend(title='Prefixo Cíclico', loc='upper right')
-#         plt.tight_layout()
-
-#         # em vez de plt.show(), salve o arquivo:
-#         filename = f'BER_{mod_label}_{canal_key}.png'.replace('+','p').replace(' ','_')
-#         plt.savefig(filename, dpi=300)
-#         plt.close()
-#         print(f'Salvo: {filename}')
-#         # plt.show()
-#         # plt.close()
-
-
-# simula 16-QAM SEM repetição, pega Rayleigh+AWGN (índice 2)
-_, _, ber_sem = simulate_ofdm_qam(16, use_repetition=False)
-# simula 16-QAM COM repetição, pega Rayleigh+AWGN (índice 2)
-_, _, ber_com = simulate_ofdm_qam(16, use_repetition=True)
-
-plt.figure(figsize=(8,5))
-plt.semilogy(SNRs_dB, ber_sem, 'bo-',  linewidth=2, label='Sem Correção')
-plt.semilogy(SNRs_dB, ber_com, 'rs-',  linewidth=2, label=f'Com Repetição (r={rep})')
-plt.grid(which='both', linestyle='--', alpha=0.6)
+# === Plotagem ===
+canal_nome = "Rayleigh + AWGN" if canal_rayleigh else "AWGN"
+plt.figure()
+plt.semilogy(SNR_dB, BER_sem_cod, 'bo-', label='Sem Correção', linewidth=2)
+plt.semilogy(SNR_dB, BER_com_cod, 'rs-', label=f'Com Código de Repetição (r = {r})', linewidth=2)
+plt.grid(True, which='both')
 plt.xlabel('SNR (dB)')
 plt.ylabel('BER')
-plt.title('BER vs SNR para OFDM com QAM-16 em Canal Rayleigh+AWGN')
-plt.legend()   # deixa o Matplotlib escolher o melhor lugar
+plt.title(f'BER vs SNR - {M}-QAM e Canal {canal_nome}')
+plt.legend(loc='lower left')
 plt.tight_layout()
-plt.savefig('BER_correcao_repeticao.png', dpi=300)
 plt.show()
