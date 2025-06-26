@@ -97,7 +97,7 @@ def simulate_ofdm_qpsk():
             plt.figure(figsize=(6,6))
             plt.subplot(2,1,1)
             plt.plot(freq_axis, np.abs(np.fft.fftshift(T0)))
-            plt.title('Espectro Antes (símbolo 0) – QPSK - {text}')
+            plt.title(f'Espectro Antes (símbolo 0) – QPSK - {text}')
             plt.xlabel('Frequência (Hz)')
             plt.ylabel('Magnitude')
             plt.grid(True)
